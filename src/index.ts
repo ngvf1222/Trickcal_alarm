@@ -112,9 +112,14 @@ client.once(Events.ClientReady, (readyClient) => {
       docs.forEach(async (e) => {
       const data=await e.data()
       const channel_id='evet_alarm' in data?data.evet_alarm:data.ticket_alarm
-        await (client.channels.cache.get(channel_id) as TextChannel)
+      const channel_=(client.channels.cache.get(channel_id) as TextChannel)
+      try{
+        await channel_
           .send(`새로운 이벤트 도착!`+'\n'
             +`[${event.title}](${event.link})`);
+          }catch{
+            console.log(`${channel_id} is missing (crying)`)
+          }
       });
     }
     if (new_ticket_id !== ticket_id) {
