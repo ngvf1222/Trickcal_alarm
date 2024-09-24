@@ -4,12 +4,13 @@ import {
   CacheType,
   PermissionsBitField
 } from "discord.js";
-import { get_event } from "../../lounge";
+import { get_event, get_ticket } from "../../lounge";
 import { doc, setDoc, getDoc, Firestore } from "firebase/firestore";
+const TICKET_REGEX=/"value":"[0-9A-Z]{4,}"/g
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("이벤트")
-    .setDescription("이벤트 관련 사항")
+    .setName("티켓")
+    .setDescription("티켓 관련 사항")
     .addSubcommand((subcommand) =>
       subcommand
         .setName("불러오기")
@@ -30,10 +31,10 @@ module.exports = {
     if (interaction.options.getSubcommand() === "불러오기") {
       await interaction.reply(
         (
-          await get_event(30)
+          await get_ticket(30)
         )
           .filter((e) => e.is_progress)
-          .map((e) => `* [${e.title}](<${e.link}>)`)
+          .map((e) => `* [${e.title}](<${e.link}>)(${Array.from(e.contents.matchAll(TICKET_REGEX)).map(e=>e[0].slice(9,-1)).join(',')})`)
           .reverse()
           .join("\n\n")
       );
@@ -45,7 +46,7 @@ module.exports = {
           await setDoc(
             doc(db, "trickcal-alarm", interaction.guildId),
             {
-              evet_alarm: channel.id,
+              ticket_alarm: channel.id,
             },
             { merge: true }
           );
@@ -60,12 +61,12 @@ module.exports = {
         const doc_ = await getDoc(
           doc(db, "trickcal-alarm", interaction.guildId)
         );
-        if (doc_.exists() && 'evet_alarm' in doc_.data()) {
+        if (doc_.exists() && 'ticket_alarm' in doc_.data()) {
           await interaction.reply(
-            `<#${doc_.data().evet_alarm}>채널이 알림 채널로 설정되어 있어요!`
+            `<#${doc_.data().ticket_alarm}>채널이 알림 채널로 설정되어 있어요!`
           );
         } else {
-          await interaction.reply("아직 설정된 알림 채널이 없어요!\n티켓 채널이 설정되어있다면 티켓 채널에 올라와요!");
+          await interaction.reply("아직 설정된 알림 채널이 없어요!\n이벤트 채널이 설정되어있다면 이벤트 채널에 올라와요!");
         }
       }
     }
