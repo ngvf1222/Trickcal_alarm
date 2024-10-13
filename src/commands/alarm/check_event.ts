@@ -27,8 +27,9 @@ module.exports = {
     interaction: ChatInputCommandInteraction<CacheType>,
     db: Firestore
   ) {
+    await interaction.deferReply({ ephemeral: true });
     if (interaction.options.getSubcommand() === "불러오기") {
-      await interaction.reply(
+      await interaction.editReply(
         (
           await get_event(30)
         )
@@ -49,23 +50,23 @@ module.exports = {
             },
             { merge: true }
           );
-          await interaction.reply(`알림 채널이${channel}로 설정되었어요!`);
+          await interaction.editReply(`알림 채널이${channel}로 설정되었어요!`);
         } catch (e) {
           console.log(e);
         }
       }else{
-        await interaction.reply("권한이 부족합니다! 관리자 권한을 가지신 분만 설정이 가능하셔요!");
+        await interaction.editReply("권한이 부족합니다! 관리자 권한을 가지신 분만 설정이 가능하셔요!");
       }
       } else {
         const doc_ = await getDoc(
           doc(db, "trickcal-alarm", interaction.guildId)
         );
         if (doc_.exists() && 'evet_alarm' in doc_.data()) {
-          await interaction.reply(
+          await interaction.editReply(
             `<#${doc_.data().evet_alarm}>채널이 알림 채널로 설정되어 있어요!`
           );
         } else {
-          await interaction.reply("아직 설정된 알림 채널이 없어요!\n티켓 채널이 설정되어있다면 티켓 채널에 올라와요!");
+          await interaction.editReply("아직 설정된 알림 채널이 없어요!\n티켓 채널이 설정되어있다면 티켓 채널에 올라와요!");
         }
       }
     }
