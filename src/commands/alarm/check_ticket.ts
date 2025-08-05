@@ -2,11 +2,11 @@ import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   CacheType,
-  PermissionsBitField
+  PermissionsBitField,
 } from "discord.js";
-import { get_event, get_ticket } from "../../lounge";
+import { get_event, get_ticket } from "../../libs/lounge";
 import { doc, setDoc, getDoc, Firestore } from "firebase/firestore";
-const TICKET_REGEX=/"value":"[0-9A-Z]{4,}"/g
+const TICKET_REGEX = /"value":"[0-9A-Z]{4,}"/g;
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("티켓")
@@ -28,45 +28,64 @@ module.exports = {
     interaction: ChatInputCommandInteraction<CacheType>,
     db: Firestore
   ) {
+    await interaction.deferReply();
     if (interaction.options.getSubcommand() === "불러오기") {
-      await interaction.reply(
-        (
-          await get_ticket(30)
+      const result = (await get_ticket(30))
+        .filter((e) => e.is_progress)
+        .map(
+          (e) =>
+            `* [${e.title}](<${e.link}>)(${Array.from(
+              e.contents.matchAll(TICKET_REGEX)
+            )
+              .map((e) => e[0].slice(9, -1))
+              .join(",")})`
         )
-          .filter((e) => e.is_progress)
-          .map((e) => `* [${e.title}](<${e.link}>)(${Array.from(e.contents.matchAll(TICKET_REGEX)).map(e=>e[0].slice(9,-1)).join(',')})`)
-          .reverse()
-          .join("\n\n")
+        .reverse()
+        .join("\n\n");
+      await interaction.editReply(
+        result.length > 2000
+          ? result.slice(0, 2000 - 3) + "..."
+          : result.length == 0
+          ? "현재 사용 가능한 티켓이 없어요!"
+          : result
       );
     } else if (interaction.options.getSubcommand() === "채널") {
       const channel = interaction.options.getChannel("채널");
       if (channel) {
-        if(interaction.memberPermissions.has(PermissionsBitField.Flags.Administrator)){
-        try {
-          await setDoc(
-            doc(db, "trickcal-alarm", interaction.guildId),
-            {
-              ticket_alarm: channel.id,
-            },
-            { merge: true }
+        if (
+          interaction.memberPermissions.has(
+            PermissionsBitField.Flags.Administrator
+          )
+        ) {
+          try {
+            await setDoc(
+              doc(db, "trickcal-alarm", interaction.guildId),
+              {
+                ticket_alarm: channel.id,
+              },
+              { merge: true }
+            );
+            await interaction.editReply(
+              `알림 채널이${channel}로 설정되었어요!`
+            );
+          } catch (e) {
+            console.log(e);
+          }
+        } else {
+          await interaction.editReply(
+            "권한이 부족합니다! 관리자 권한을 가지신 분만 설정이 가능하셔요!"
           );
-          await interaction.reply(`알림 채널이${channel}로 설정되었어요!`);
-        } catch (e) {
-          console.log(e);
         }
-      }else{
-        await interaction.reply("권한이 부족합니다! 관리자 권한을 가지신 분만 설정이 가능하셔요!");
-      }
       } else {
         const doc_ = await getDoc(
           doc(db, "trickcal-alarm", interaction.guildId)
         );
-        if (doc_.exists() && 'ticket_alarm' in doc_.data()) {
-          await interaction.reply(
+        if (doc_.exists() && "ticket_alarm" in doc_.data()) {
+          await interaction.editReply(
             `<#${doc_.data().ticket_alarm}>채널이 알림 채널로 설정되어 있어요!`
           );
         } else {
-          await interaction.reply("아직 설정된 알림 채널이 없어요!\n이벤트 채널이 설정되어있다면 이벤트 채널에 올라와요!");
+          await interaction.editReply("아직 설정된 알림 채널이 없어요!");
         }
       }
     }
