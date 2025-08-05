@@ -9,8 +9,8 @@ import { doc, setDoc, getDoc, Firestore } from "firebase/firestore";
 const TICKET_REGEX = /"value":"[0-9A-Z]{4,}"/g;
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("티켓")
-    .setDescription("티켓 관련 사항")
+    .setName("쿠폰")
+    .setDescription("쿠폰 관련 사항")
     .addSubcommand((subcommand) =>
       subcommand
         .setName("불러오기")
